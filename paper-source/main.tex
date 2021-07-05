@@ -1,0 +1,378 @@
+%%
+% This is an Overleaf template for scientific articles and reports
+% using the TUM Corporate Desing https://www.tum.de/cd
+%
+% For further details on how to use the template, take a look at our
+% GitLab repository and browse through our test documents
+% https://gitlab.lrz.de/latex4ei/tum-templates.
+%
+% The tumarticle class is based on the KOMA-Script class scrartcl.
+% If you need further customization please consult the KOMA-Script guide
+% https://ctan.org/pkg/koma-script.
+% Additional class options are passed down to the base class.
+%
+% If you encounter any bugs or undesired behaviour, please raise an issue
+% in our GitLab repository
+% https://gitlab.lrz.de/latex4ei/tum-templates/issues
+% and provide a description and minimal working example of your problem.
+%%
+
+
+\documentclass[
+  english,        % define the document language (english, german)
+  font=times,     % define main text font (helvet, times, palatino, libertine)
+  onecolumn,      % use onecolumn or twocolumn layout
+]{tumarticle}
+%\documentclass[12pt]{report}
+
+% load additional packages
+\usepackage{lipsum}
+
+%\usepackage[margin=0.5in]{geometry}
+\usepackage{changepage} % increase page margins
+
+\usepackage[ % use alphabetic bibliography
+backend=biber,
+style=alphabetic,
+citestyle=alphabetic
+]{biblatex}
+%\usepackage{biblatex} %Imports biblatex package
+\addbibresource{sample.bib} %Import the bibliography file
+
+% article metadata
+\title{Compressed Sensing}
+\subtitle{}
+
+\author[]{Oleksii Davydenko}
+
+%\affil[mark=1]{\theDepartmentName, \theUniversityName}
+
+\date{July 2, 2021}
+
+\textheight 9.5in % hack to increase the bottom margin
+
+\usepackage{amsthm}
+
+% set up theorems, lemmas etc
+\newtheorem{definition}{Definition}[section]
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}{Lemma}[section]
+
+\usepackage{amsmath}
+\numberwithin{equation}{section} % number equations according to section
+
+\setlength{\parskip}{0.5em} % add small spaces after paragraphs
+
+\begin{document}
+
+\maketitle
+
+\begin{large}
+\begin{adjustwidth}{0pt}{0pt} % reduce margins from both sides
+
+\begin{abstract}
+  This is a seminar paper for the seminar \textbf{Mathematics in Data Science} by Prof. Dr. Massimo Fornasier and PD Dr. Peter Massopust. It explores the applications and techniques compressed sensing and its relation to $l_1$-minimization. It provides the description of the mathematical prerequisites including the Null Space and Restricted Isometry properties, matrix coherence and the applicable Gaussian, Bernoulli and Fourier random matrices. An analysis and description of the algorithms for $l_1$-minimization, including Chambolle and Pock and Iteratively Reweighted Least Squares is given, as well as an exploration of extensions of compressed sensing to matrices and different target domains.
+\end{abstract}
+
+\section{Problem Statement}
+
+
+
+\par The idea of compressed sensing is that it is possible to effectively recover a (sparse) signal from its reduced representation (measure). This applies primarily in situations when repeated measures are costly or harmful (like in the case of magnetic resonance imaging) or when measures are naturally sparse (like radar scans). \cite{CS}
+
+
+Traditionally, the fundamental theorem of linear algebra states that in order to effectively reconstruct a signal we need a sequence of measurements that is at least as long as the original signal. We can bypass this requirement by assuming that the input signal is sparse in its nature. This way a signal is recovered from "incomplete" measurements.
+
+A question of interest is whether there is a good way of obtaining the compressed version of the signal directly, without taking many measurements of it. Compressed sensing is relying on taking a small amount of linear and non-adaptive measurements. Interestingly enough, all provably good measurement matrices happen to be random matrices. These include the Gaussian, Bernoulli and partial random Fourier matrices. 
+
+\subsection{Applications}
+
+Compressive sensing can be potentially used in all applications where the task is the reconstruction of a signal or an image from linear measurements, while taking too many of these measurements is a costly, lengthy, difficult, impossible or otherwise undesired procedure. In addition, there should be reasons to believe that the signal is sparse in a suitable basis (or frame). Empirically, it applies to most types of signals.
+
+In computerized tomography, an image of the inside of a human body is obtained by taking X-ray images of it from different angles. Taking an almost complete set of images would expose the patient to a large and dangerous dose of radiation, so the amount of measurements should be as small as possible, and nonetheless guarantee a good enough image quality. Such images are usually nearly piecewise constant and therefore nearly sparse in the gradient, so there is a good reason to believe that compressive sensing is well applicable \cite{Robust-Uncertainty}.
+
+Radar imaging seems like another very promising application of compressive sensing techniques. Only a small amount of targets is monitored at the same time, so sparsity becomes a very realistic assumption. Standard methods for radar imaging actually use the sparsity assumption as well, but only at the very end of the signal processing procedure in order to clean up the noise in the resulting image. Using sparsity from the very beginning by using compressive sensing methods is therefore a natural approach.
+
+Other potential applications include wireless communication, astronomical signal and image processing, analog to digital conversion, camera design and imaging, collaborative filtering, quantum state tomography, signal and image processing. An important special case is the matrix completion problem.
+
+\subsection{Related problems}
+
+\textbf{Sparse Approximation.} Compression algorithms like JPEG, MPEG and MP3 rely on the fact that most audio signals and digital images have a sparse representation in terms of a suitable basis. In this case, the compression happens by keeping only the largest coefficients of the signal.
+
+\textbf{Compressive Sensing.} The biggest progress in the development of compressive sensing \cite{CS1} happened thanks to combining the power of $l_1$-minimization and random matrices, which have proven to show optimal results on the ability of $l_1$-minimization of recovering (approximately) sparse vectors.
+
+\textbf{Developments in Computer Science.} A similar problem in the area of computer science is called \textit{heavy hitters} detection or \textit{sketching}. In this case we are not only interested in recovering signals from sparse data, but also require sublinear runtime on the signal length \textit{N} of the recovery algorithm. This is made possible by reporting only the non-zero (most significant) coefficients of the sparse vector. Remarkably, sublinear algorithms exist for sparse Fourier recovery, which use ideas from \textit{group testing}.
+
+In sketching algorithms the matrix and fast algorithm are being designed simultaneously. \textit{Bipartite expander} graphs have been successfully used in order to construct good compressed sensing matrices together with associated fast reconstruction algorithms.
+
+
+\section{Basic Notation and Definitions}
+
+\subsection{$l_1$ Optimization}
+
+Our signal transformation process can be described as $y = Ax$, where $x \in \mathbb{C}^N$, $A \in \mathbb{C}^{m \times N}$ - the \textit{measurement matrix}, $y \in \mathbb{C}^m$ - \textit{measurement vector}. We are especially interested in the case when $m << N$. With the additional assumption that x is k-sparse, restoring it from y becomes realistic. The $l_1$-minimization approach considers the solution of 
+\[min \lVert z \rVert _1 \text{ subject to } Az = y\]
+which is a convex problem and can be seen as a convex relaxation of
+\[min \lVert z \rVert _0 \text{ subject to } Az = y\]
+
+$l_1$-minimization tends to promote sparse solutions. The intuitive understanding of it comes from the example when $N = 2$ and $m = 1$, so we deal with a line of solutions $F(y) = \{z : Az = y\}$ in $\mathbb{R}^2$. Unless $ker A$ is parallel to one of the faces of the polytope $B_1^2$, there is a unique solution to the $l_1$-minimization problem, which is sparse and only has one nonzero entry.
+
+\subsection{Sparse Vectors}
+
+We denote the support of the vector $x$ as $supp(x) = \{j : x_j \neq 0\}$, and 
+\[ \lVert x \rVert_0 := |supp(x)| \]
+denotes the "$l_0$-norm" of the vector, even though formally it is not a norm.
+
+Then a vector x is called \textit{k-sparse} if $\lVert x \rVert_0 \leq k$. We can now define the best k-term approximation error of a vector $x \in \mathbb{C}^N$ as
+\[ \sigma_k (x)_p = \inf_{z \in \Sigma_k} \lVert x - z \rVert_p, \]
+where $\Sigma_k$ is a set of all $k$-sparse vectors
+\[\Sigma_k := \{x \in \mathbb{C}^N : \lVert x \rVert_0 \leq k\}. \]
+
+\subsection{The Null Space Property}
+
+The null space property provides the necessary and sufficient conditions on the reconstruction of signals using the techniques of $l_1$-relaxation \cite{CSKA}.
+\begin{definition}
+A matrix $A \in \mathbb{C}^{m \times N}$ is said to satisfy the null space property (NSP) of order $k$ with constant $\gamma \in (0, 1)$ if
+\[ \lVert \eta_T \rVert_1 \leq \gamma \lVert  \eta_{T^c} \rVert_1 \]
+for all sets $T \subset \{1,...,N\}, \#T \leq k$ and for all $\eta \in ker A$.
+\end{definition}
+
+\begin{theorem}
+Let $A \in \mathbb{C}^{m \times N}$ be a matrix that satisfies the NSP of order k with constant $\gamma \in (0, 1)$. Let $x \in \mathbb{C}^N$ and $y = Ax$ and let $x^*$ be a solution of the $l_1$-minimization problem. Then
+\[ \lVert x - x^* \rVert_1 \leq \frac{2(1+\gamma)}{1-\gamma} \sigma_k(x)_1 \]
+In particular, if x is k-sparse then $x^* = x$.
+\end{theorem}
+
+\begin{proof}
+Let $\eta = x^* - x$. Then $\eta \in ker A$ and
+\[ \lVert x^* \rVert_1 \leq \lVert x \rVert_1 \]
+because $x^*$ is a solution of the $l_1$-minimization problem. Let $T$ be the set of the k-largest entries of $x$ in absolute value. One has
+\[ \lVert x^*_T \rVert_1 + \lVert x^*_{T^c} \rVert_1 \leq \lVert x_T \rVert_1 + \lVert x_{T^c} \rVert_1 .\]
+It follows from the triangle inequality that
+\[ \lVert x_{T} \rVert_1 - \lVert \eta_{T} \rVert_1 + \lVert \eta_{T^c} \rVert_1 - \lVert x_{T^c} \rVert_1 \leq \lVert x_{T} \rVert_1 + \lVert x_{T^c} \rVert_1 .\]
+Hence,
+\[ \lVert \eta_{T^c} \rVert_1 \leq \lVert \eta_{T} \rVert_1 + 2 \lVert x_{T^c} \rVert_1 \leq \gamma \lVert \eta_{T^c} \rVert_1 + 2 \sigma_k (x)_1 ,\]
+or, equivalently
+\[ \lVert \eta_{T^c} \rVert_1 \leq \frac{2}{1-\gamma} \sigma_k (x)_1 .\]
+Finally,
+\[ \lVert x - x^* \rVert_1 = \lVert \eta_{T} \rVert_1 + \lVert \eta_{T^c} \rVert_1 \leq (\gamma + 1) \lVert \eta_{T^c} \rVert_1 \leq \frac{2 (1 + \gamma)}{1-\gamma} \sigma_k (x)_1\]
+and the proof is completed.
+\end{proof}
+
+It is also possible to show that if all k-sparse x can be recovered from $y = Ax$ using $l_1$-minimization the necessarialy $A$ satisfies the NSP of order k with some constant $\gamma \in (0,1)$. This means that NSP is actually equivalent to sparse $l_1$-recovery.
+
+\subsection{The Restricted Isometry Property}
+Since the NSP is difficult to show directly, the restricted isometry property (RIP) is used, which is easier to handle and it also implies stability under noise.
+
+\begin{definition}
+The restricted isometry constant $\delta_k$ of a matrix $A \in \mathbb{C}^{m \times N}$ is the smallest number such that
+\[ (1 - \delta_k) \lVert z \rVert^2_2 \leq \lVert Az \rVert^2_2 \leq (1 + \delta_k) \lVert z \rVert^2_2 ,\]
+for all $z \in \Sigma_k$.
+
+A matrix A is said to satisfy the restricted isometry property of order k with constant $\sigma_k$ if $\sigma_k \in (0,1)$. $\sigma_k$ can also be equivalently defined as
+\[ \delta_k = \max_{T \subset \{1,...,N\}, \#T \leq k} \lVert A_T^* A_T - I \rVert_{2 \rightarrow 2} ,\]
+which means that all column submatrices of A with at most k columns are required to be well-conditioned. The RIP implies the NSP as shown in the following lemma.
+\end{definition}
+
+\begin{lemma}
+Assume that $A \in \mathbb{C}^{m \times N}$ satisfies the RIP of order $K = k + h$ with constant $\sigma_k \in (0,1)$. Then A has the NSP of order k with constant $\gamma = \sqrt{\frac{k}{h}\frac{1+\sigma_K}{1-\sigma_K}}$
+\end{lemma}
+
+The proof can be found in \cite{CS}.
+
+\subsection{Coherence}
+The coherence is a classical way of analyzing the recovery abilities of a measurement matrix. For a matrix $A = (a_1|a_2|...|a_N) \in \mathbb{C}^{m \times N}$ with normalized columns, $\lVert a_l \rVert_2 = 1$, it is defined as
+\[ \mu = \max_{l \neq k} |\langle a_l, a_k \rangle| .\]
+
+Several examples of matrices are known which have small coherence $\mu = \mathbb{O}^(1/\sqrt{m})$. As an example, one can concatenate the identity matrix with the unitary Fourier matrix $F \in \mathbb{C}*{m \times m}$ with entries $F_{j,k} = m^{-1/2} e^{2 \pi i j k / m}$:
+\[A = (I|F) \in \mathbb{C}^{m \times 2m}, \mu = 1/\sqrt{m}. \]
+Combining the estimate with the recovery results for $l_1$-minimization above, we can show that all $k$-sparse vectors $x$ can be stably recovered from $y = Ax$ via $l_1$-minimization provided that
+\[ m \geq C^{\prime} k^2. \]
+
+This is quite a good result since $k$ is very small compared to $N$, hence we can still choose $m$ smaller than $N$ and all $k$-sparse vectors can be recovered from undersampled measurements $y = Ax$. It's hard to improve this using deterministic methods due to the general lower bound $\mu \geq \frac{1}{\sqrt{m}} (\text{when }N \text{ is sufficiently large})$. Thankfully, a major breakthrough in compressive sensing was obtained with random matrices and probabilistic techniques.
+
+\subsection{RIP for Random Matrices}
+Optimal estimates for the RIP constants in terms of the number $m$ of measurement matrices can be obtained for Gaussian, Bernoulli or more general subgaussian random matrices. The starting point for this approach is a concentration inequality of the form
+\[ \mathbb{P} (|\lVert Ax \rVert_2^2 - \lVert x \rVert_2^2| \geq \delta \lVert x \rVert_2^2 ) \leq 2 e^{-c_0 \delta^2 m}, 0 < \delta < 1, \]
+where $c_0 > 0$ is some constant.
+
+The two most relevant examples of random matrices which satisfy the above concentration are the following:
+\begin{enumerate}
+\item \textbf{Gaussian Matrices.} Here the entries of A are chosen as i.i.d. Gaussian random variables with expectation 0 and variance $1/m$.
+\item \textbf{Bernoulli Matrices.} The entries of Bernoulli matrices are independent realizations of $\pm 1 / \sqrt(m)$ Bernoulli random variables, that is, each entry takes the value $+1 / \sqrt(m)$ or $-1 / \sqrt(m)$ with equal probability.
+\end{enumerate}
+
+
+\section{Algorithm}
+
+We have shown already that the $l_1$-minimization performs very well in recovering sparse or approximately sparse vectors from undersampled measurements. In applications it is important to have fast methods for actually solving $l_1$-minimization problems. Two of such methods - Chambolle and Pock's primal dual algorithm and iteratively reweighted least squares (IRLS) - will be discussed here. Many more methods are available nowadays, including the homotopy and LARS method, greedy methods like orthogonal matching pursuit, CoSaMP, and iterative hard thresholding, which may offer better complexity that standard interior point methods.
+
+\subsection{Chambolle and Pock's algorithm}
+
+A goal of the primal dual approach is to solve the optimization problem in the form
+\begin{equation}
+    \min_{x \in \mathbb{C}^N} F(Ax) + G(x).
+\end{equation}
+It performs an iteration on the dual variable, the primal variable and an auxiliary primal variable. The initial points are defined as $x^0, \bar{x}^0 = x \in \mathbb{C}^N, \xi^0 \in \mathbb{C}^m$ and parameters $\tau, \sigma > 0, \theta \in [0,1]$, we iteratively compute
+\begin{equation}
+    \xi^{n+1} := P_{F^*}(\sigma;\xi^n + \sigma A \bar{x}^n),
+\end{equation}
+\begin{equation}
+    x^{n+1} := P_G(\tau; x^n - \tau A^* \xi^{n+1}),
+\end{equation}
+\begin{equation}
+    \bar{x}^{n+1} := x^{n+1} + \theta (x^{n+1} - x^n),
+\end{equation}
+where for some convex function $G$ the proximal mapping is defined as
+\[ P_G(\tau, z) := arg \min_{x \in \mathbb{C}^N} \{\tau G(x) + \frac{1}{2} \lVert x - z \rVert_2^2\} \]
+and
+\[ F^*(\xi) = sup \{ Re\langle z,\xi \rangle - F(z) : z \in \mathbb{C}^m \} \]
+denotes the convex (Fenchel) conjugate of F.
+
+This algorithm converges to the saddle point of the primal dual problem, and can be interpreted as a gradient descent method for solving the primal problem, combined with a gradient ascent method to simultaneously solve the dual problem. In the case of $\theta = 1$, the convergence of the primal dual algorithm has been proven in \cite{CP}.
+
+\subsection{Iteratively reweighted least squares (IRLS)}
+
+This iterative algorithm assumes that A satisties the NSP and is guaranteed to reconstruct vectors with the same error estimate as $l_1$-minimization. The algorithm has a guaranteed linear rate of convergence which can even be improved to superlinear rate with a small modification.
+
+Denote $\mathcal{F}(y) = \{x : Ax = y\}$ and $\mathcal{N} = ker A$. Observe that $|t| = \frac{t^2}{|t|}$ for $t \neq 0$. Hence, an $l_1$-minimization can be recasted into a weighted $l_2$-minimization, with the hope that
+\[ arg \min_{x \in \mathcal{F}(y)} \sum_{j=1}^N |x_j| \approx arg \min_{x \in \mathcal{F}(y)} \sum_{j=1}^N x_j^2 |x_j^*|^{-1} ,\]
+as soon as $x^*$ is the desired $l_1$-norm minimizer. The advantage of the reformulation is that minimizing the smooth function $t^2$ is much easier than minimizing the nonsmooth function $|t|$. However, neither one disposes of $x^*$ a priori (this is the vector we are interested in computing), and we cannot expect that $x_j^* \neq 0$ for all $j = 1,...,N$, since we hope for $k$-sparse solutions.
+
+If we had a good approximation $w_j^n$ of $|(x_j^*)^2 + \epsilon_n^2|^{-1/2} 
+\approx |x_j^*|^{-1}$, for some $\epsilon_n > 0$, we could compute
+\begin{equation} \label{irls:eq1}
+x^{n+1} = arg \min_{x \in \mathcal{F}(y)} \sum_{j=1}^N x_j^2 w_j^n ,
+\end{equation}
+and then update $\epsilon_{n+1} \leq \epsilon_{n}$ by a certain rule specified later. Furthermore, we set
+\begin{equation}
+\label{irls:eq2} w_j^{n+1} = |(x_j^{n+1})^2 + \epsilon_{n+1}^2|^{-1/2} ,
+\end{equation}
+and iterate the process. Ideally, a good chouce of $\epsilon_n \rightarrow 0$ will allow the iterative computation of the $l_1$-minimizer.
+
+\subsubsection{Weighted l2-minimization}
+If we assume that the weight $w$ is strictly positive ($w_j > 0$ for all $j \in \{1,...,N\}$), then $l_2(w)$ is a Hilbert space with the inner product
+\[ \langle u,v \rangle_w := \sum_{j=1}^N w_j u_j v_j .\]
+We define
+\[ x^w := arg \min_{z \in \mathcal{F}(y)} \lVert z \rVert_{2,w} ,\]
+where $\lVert z \rVert_{2,w} = \langle z,z \rangle_w^{1/2}$. Because the $\lVert \cdot \rVert_{2,w}$-norm is strictly convex, the minimizer $x^w$ is necesarily unique; it is characterized by the orthogonality conditions
+\[ \langle x^w, \eta \rangle_w = 0, \text{ for all } \eta \in \mathcal{N}\]
+
+\textit{Implementation of the iteratively re-weighted least squares algorithm (IRLS).}
+This algorithm appears for the first time in \cite{Theo-of-LLMA} in the form of an algorithm for solving uniform approximation problems. It obeys a linear convergence rate.
+
+We analyze the algorithm \ref{irls:eq1} and \ref{irls:eq2} by observing that
+\[ |t| = \min_{w > 0} \frac{1}{2} (w t^2 + w^{-1}) ,\]
+there the minimum is attained for $w = \frac{1}{|t|}$. Based on this simple relationship, given a real number $\epsilon > 0$ and a weight factor $w \in \mathbb{R}^N$, with $w_j > 0, j = 1,...,N$, we introduce the functional
+\[ \mathcal{J}(z,w,\epsilon) := \frac{1}{2} \sum_{j=1}^N (z_j^2 w_j + \epsilon^2 + w_j^{-1}), z \in \mathbb{R}^N \]
+The algorithm described by \ref{irls:eq1} and \ref{irls:eq2} can be recast as an alternating method for choosing optimizers and weights based on the functional $\mathcal{J}$. To provide more detail, recall that $r(z)$ denotes the nonincreasing rearrangement of a vector $z \in \mathbb{R}^N$.
+
+\subsubsection{IRLS Algorithm}
+Initialize $w^0 := (1,...,1)$. Set $\epsilon := 1$. For $n = 0,1,...$, recursively define
+\begin{equation}
+    \epsilon_{n+1} := \min \{ \epsilon_n , \frac{r_{K+1} (x^{n+1})}{N} \},
+\end{equation}
+and
+\begin{equation}
+    x^{n+1} := arg \min_{z \in \mathcal{F}(y)} \mathcal{J}(z,w^n,\epsilon_n) = arg \min_{z \in \mathcal{F}(y)} \lVert z \rVert_{2,w^n}
+\end{equation}
+where $K$ is a fixed integer that will be specified later. Finally, set
+\begin{equation}
+    w^{n+1} := arg \min_{w>0} \mathcal{J}(x^{n+1},w,\epsilon_{n+1}).
+\end{equation}
+The algorithm stops if $\epsilon_n = 0$; in this case, define $x^j := x^n$ for $j > n$. In general, this algorithm generates an infinite sequence $(x^n)_{n \in \mathbb{N}}$ of vectors.
+
+At every step the algorithm requires the solution of a weighted least squares problem. In matrix form
+\[ x^{n+1} = D_n^{-1} A^* (A D_n^{-1} A^*)^{-1} y,\]
+where $D_n$ is the $N \times N$ diagonal matrix, the $j$-th diagonal entry of which is $w_j^n$. Once $x^{n+1}$ is found, the weight $w^{n+1}$ is given by
+\[ w_j^{n+1} = [(x_j^{n+1})^2 + \epsilon_{n+1}^2]^{-1/2}, j = 1,...,N.\]
+
+\subsubsection{Rate of Convergence}
+The following theore gives a bound on the rate of convergence of $E_n$ to zero.
+
+\begin{theorem}
+Assume A satisfies the NSP of order K with constant $\gamma$. Suppose that $k < K - \frac{2\gamma}{1-\gamma}, 0 < \rho < 1$, and $0 < \gamma < 1 - \frac{2}{K+2}$ are such that
+\[\mu := \frac{\gamma (1 + \gamma)}{1 - \rho} (1 + \frac{1}{F + 1 - k}) < 1.\]
+Assume that $\matcal{F}$ contains a $k$-sparse vector $x^*$ and let $T = supp(x^*)$. Let $n_0$ be such that
+\[E_n_0 \leq R^* := \rho \min_{i \in T} |x_i^*|.\]
+Then, for all $n \geq n_0$, one has
+\begin{equation}
+\label{irls:cr} E_{n+1} \leq \mu E_n.
+\end{equation}
+As a consequence, $x^n$ converges to $x^*$ exponentially.
+\end{theorem}
+
+\begin{proof}
+The relation $\langle x^w, \eta \rangle_w = 0$, for all $\eta \in \mathcal{N}$, with $w = w^n, x^w = x^{n+1} = x^* + \eta^{n+1}$, and $\eta = x^{n+1} - x^* = \eta^{n+1}$, gives
+\[ \sum_{i=1}^N (x_i^* + \eta_i^{n+1}) \eta_i^{n+1} w_i^n = 0.\]
+After rearranging the terms and considering that $x^*$ is supported on $T$, we obtain
+\begin{equation}
+    \label{convergence:eq1} \sum_{i=1}^N |\eta_i^{n+1}|^2 w_i^n = -\sum_{i \in T} x_i^* \eta_i^{n+1} w_i^n = -\sum_{i \in T} \frac{x_i^*}{[(x_i^n)^2 + \epsilon_n^2]^{1/2}} \eta_i^{n+1}.
+\end{equation}
+We can prove the theorem by induction. Assume that $E_n \leq R^*$ has already been established. Then, for all $i \in T$,
+\[ |\eta_i^n| \leq \lVert \eta^n \rVert_1 = E_n \leq \rho |x_i^*|,\]
+so that
+\begin{equation}
+    \label{convergence:eq2} \frac{|x_i^*|}{[(x_i^n)^2 + \epsilon_n^2]^{1/2}} \leq \frac{|x_i^*|}{|x_i^n|} = \fract{|x_i^*|}{|x_i^* + \eta_i^n|} \leq \frac{1}{1-\rho},
+\end{equation}
+and hence if we combine \ref{convergence:eq1} with \ref{convergence:eq2} and the NSP we get
+\[\sum_{i=1}^N |\eta_i^{n+1}|^2 w_i^n \leq \frac{1}{1-\rho} \lVert \eta_T^{n+1} \rVert_1 \leq \frac{\gamma}{1-\rho} \lVert \eta_{T^c}^{n+1} \rVert_1\]
+Combining this estimate with the Cauchy-Schwarz inequality yields
+\begin{equation}
+\begin{split}
+    \label{convergence:eq3}
+    \lVert \eta_{T^c}^{n+1} \rVert_1^2 \leq (\sum_{i \in T^c} |\eta_i^{n+1}|^2 w_i^n) (\sum_{i \in T^c} [(x_i^n)^2 + \epsilon_n^2]^{1/2}) \\ = (\sum_{i = 1}^N |\eta_i^{n+1}|^2 w_i^n) (\sum_{i \in T^c} [(\eta_i^n)^2 + \epsilon_n^2]^{1/2}) \\ \leq \frac{\gamma}{1-\rho} \lVert \eta_{T^c}^{n+1} \rVert_1 (\lVert \eta^n \rVert_1 + N \epsilon_n).
+\end{split}
+\end{equation}
+If $\eta_{T^c}^{n+1} = 0$, then $x_{T^c}^{n+1} = 0$. In this case $x^{n+1}$ is $k$-sparse and the algorithm stops by definition; because $x^{n+1} - x^*$ is in the null space $\mathcal{N}$, which contains no $k$-sparse elements other than 0, we have already obtained the solution $x^{n+1} = x^*$. If $\eta_{T^c}^{n+1} \neq 0$, then cancelling the factor $\lVert \eta_{T^c}^{n+1} \rVert_1$ in \ref{convergence:eq3} results in
+\[\lVert \eta_{T^c}^{n+1} \rVert_1 \leq \frac{\gamma}{1-\rho} (\lVert \eta^n \rVert_1 + N \epsilon_n),\]
+which yields
+\begin{equation}
+    \label{convergence:eq4}
+    \lVert \eta^{n+1} \rVert_1 = \lVert \eta_T^{n+1} \rVert_1 + \lVert \eta_{T^c}^{n+1} \rVert_1 \leq (1+\gamma) \lVert \eta_{T^c}^{n+1} \rVert_1 \leq \frac{\gamma  (1+\gamma)}{1-\rho} (\lVert \eta^n \rVert_1 + N \epsilon_n).
+\end{equation}
+It also follows that
+\[N \epsilon_n \leq r_{K+1} (x^n) \leq \frac{1}{K + 1 - k} (\lVert x^n - x^* \rVert_1 + \sigma_k (x^*)_1) = \frac{\lVert \eta^n \rVert_1}{K + 1 - k},\]
+because by assumption $\sigma_k (x^*)_1 = 0$. Together with \ref{convergence:eq4} this yields the bound
+\[E_{n+1} = \lVert \eta^{n+1} \rVert_1 \leq \frac{\gamma  (1+\gamma)}{1-\rho} (1 + \frac{1}{K + 1 - k}) \lVert \eta^n \rVert_1 = \mu E_n.\]
+Particularly, since $\mu < 1$, we have $E_{n+1} \leq R^*$, which completes the induction step. As a result, $E_{n+1} \leq \mu E_n$ for all $n \geq n_0$.
+\end{proof}
+
+We can significally improve the linear rate of convergence \ref{irls:cr} by modifying the rule of updating the weight:
+\[w_j^{n+1} = ((x_j^{n+1})^2 + \epsilon_{n+1}^2)^{-\frac{2-\tau}{2}}, j = 1,...,N, \text{ for any } 0 < \tau < 1\]
+
+This corresponds to substituting the functional $\mathcal{J}$ with
+\[\mathcal{J}_{\tau} (z, w, \epsilon) := \frac{\tau}{2} \sum_{j=1}^N (z_j^2 w_j + \epsilon^2 w_j + \frac{2-\tau}{\tau} \frac{1}{w_j^{\frac{\tau}{2-\tau}}}),\]
+where $z \in \mathgg{R}^N, w \in \mathgg{R}^N_+, \epsilon \in \mathgg{R}_+$. Such an iterative optimization tends to promote the $l_\tau$-quasi-norm minimization. The rate of local convergence of this modified algorithm is actually superlinear, with the larger rate for smaller $\tau$, and appriaches a quadratic rate as $\tau \rightarrow 0$. To be precise, the local error $E_n := \lVert x^n - x^* \rVert_\tau^\tau$ satisfies
+\[E_{n+1} \leq \mu (\gamma, \tau) E_n^{2-\tau},\]
+where $\mu(\gamma, \tau) < 1$ for $\gamma > 0$ sufficiently small.
+
+\subsubsection{Advantages and disadvantages}
+At the earlier iterations the algorithm might run into inaccurate sample estimates. However, those will be down-sampled at a later stage to give more weight to the smaller non-zero signal estimates. One of the disadvantages is that due to the concavity of the function we need to define a valid starting point, as the global minimum might not be obtained every time. In addition, this algorithm uniformly penalizes the image gradient irrespective of the possible underlying image structures. This results in the over-smoothing of edges and loss of contrast information.
+
+On the other hand, the advantages of the method are that it reduces the sampling rate for sparse signals, can reconstruct the image while being robust to the reoval of noise and other artifacts and uses very few iterations. This is also helpful for recovering images with sparse gradients.
+
+
+\section{Extensions of Compressive Sensing}
+
+Compressive sensing can be extended in several forms. We could consider restoring not only vector input, but extend it to matrices of minimal rank consistent with a given underdetermined linear system of equations. Another generalization considers nonlinear nonadaptive measurements. The simplest nonlinear example is the quadratic measurements. The associated recovery task is called the phase retrieval problem. It appears in mostly physical situations where only intensity values can be observed. Alternatively, we can consider recovery from higher order measurements. Polynomial-type measurements can actually be recast into an affine low-rank minimization problem discussed before.
+
+\textbf{Matrix completion.} In the matrix completion setup the measurements are the pointwise observations of entries of the matrix. This leads to rank one matrices in the kernel of the operator S. Therefore, the RIP fails completely in this setting, and 'localized' low-rank matrices in the null space of S cannot be recovered by any method whatsoever. However, if certain conditions on the left and right singular vectors if the underlying low-rank matrix are imposed, essentially requiring that such vectors are uncorrelated with the canonical basis, then it was shown in \cite{Matrix-Completion} that such incoherent matrices of rank at most k can be recovered from m randomly chosen entries with high probability provided
+\[ m \geq C k \max\{n,p\} log^2 (\max\{n,p\}) .\]
+
+\textbf{Image recolorization.} The same $l_1$-minimization methods can be applied to a real-life image recolorization problem. The idea is that the image is known completely only on very few colored portions, while in the remaining areas only gray levels are provided. With this partial information, we can use $l_1$-minimization with respect to wavelet or curvelet coefficients to allow for high fidelity recolorization of the whole images.
+
+\subsection{Affine Low-Rank Minimization.}
+If we reformulate it as a semidefinite program, the nuclear norm minimization
+\[ \min_{X \in M_{n \times p}} \lVert X \rVert_* \text{ subject to } \mathcal{S}(X) = y \]
+can be solved by general methods from convex optimization. The fact that standard semidefinite programming tools only work effectively for solving sumilar nuclear norm minimization problems only for matrices of up to size approximately 100 $\times$ 100 makes it crucial to develop faster algorithms that are specialized on this task. Besides the already described primal-dual algorithms, there exist several alternatives, like the IRLS-M algorithm. It borrows the same underlying idea from the iteratively re-weighted least squares algorithm for $l_1$-minimization, where we consider the functional
+\[ \mathcal{J}(X,W) := \frac{1}{2} (\lVert W^{1/2} X \rVert_F^2 + \lVert W^{-1/2} \rVert_F^2),\]
+where $\lVert \cdot \rVert_F$ is the Frovenius norm, $X \in M_{n \times p}, 0 \prec W = W^* \in M_{n \times n}$. The IRLS-M algorithm is robust in the sense that under the same conditions on the measurement map $\mathcal{S}$, the accumulation points of the IRLS-M algorithm are guaranteed ti approximate an arbitrary input to within a factor of the best $k$-rank approimation error of X in the nuclear norm.
+
+\newpage
+\printbibliography %Prints bibliography
+
+\end{adjustwidth}
+\end{large}
+
+\end{document}
